@@ -7,3 +7,6 @@ service URL
 
 [https://app.iddqd.kr/join/](https://app.iddqd.kr/join/)
 
+GPT 대화 기록
+
+[https://chatgpt.com/share/69167919-6594-8013-bb5b-abc7c6c2ea88](https://chatgpt.com/share/69167919-6594-8013-bb5b-abc7c6c2ea88)
