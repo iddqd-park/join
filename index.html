@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1STWQ9ME29"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-1STWQ9ME29');
+    </script>
+    <meta charset="UTF-8">
+    <title>이미지 이어붙이기 (PNG/JPG)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .border-dashed {
+            border-style: dashed !important;
+        }
+
+        #dropZone {
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        #dropZone.drag-over {
+            background-color: #e9f5ff;
+            border-color: #0d6efd !important;
+        }
+
+        .file-list {
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        #resultPreview {
+            max-width: 100%;
+            border: 1px solid #dee2e6;
+        }
+
+        .small-text {
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <header class="mb-4">
+        <h1 class="h3 mb-2">Q Join</h1>
+        <p class="text-muted mb-0">
+            PNG / JPG 이미지를 여러 개 드래그하거나 선택하면,<br class="d-none d-md-inline">
+            <strong>파일명 순서대로</strong> 세로로 이어붙여서 하나의 긴 이미지로 만들어 드립니다.
+        </p>
+        <p class="text-muted mt-2 mb-0">Powered by <a href="https://iddqd.kr">IDDQD Internet</a></p>
+    </header>
+
+    <div class="row g-4">
+        <!-- 왼쪽: 파일 선택 영역 -->
+        <div class="col-12 col-lg-5">
+            <div
+                id="dropZone"
+                class="border border-2 border-dashed rounded-3 bg-white d-flex flex-column justify-content-center align-items-center p-4 mb-3 text-center"
+            >
+                <div class="mb-2">
+                    <i class="bi bi-upload" style="font-size: 2rem;"></i>
+                </div>
+                <p class="mb-1 fw-semibold">이미지를 여기로 드래그 앤 드롭</p>
+                <p class="mb-2 text-muted small-text">
+                    또는 아래 버튼을 클릭해서 PNG / JPG 파일을 여러 개 선택하세요.
+                </p>
+                <button type="button" id="selectFilesBtn" class="btn btn-outline-primary btn-sm">
+                    파일 선택하기
+                </button>
+                <input
+                    type="file"
+                    id="fileInput"
+                    accept="image/png,image/jpeg"
+                    multiple
+                    class="d-none"
+                >
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header py-2">
+                    <strong>선택된 이미지 목록 (파일명 순서대로 정렬)</strong>
+                </div>
+                <div class="card-body p-0">
+                    <div class="file-list">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th style="width: 4rem;">순서</th>
+                                <th>파일명</th>
+                                <th style="width: 6rem;" class="text-end">용량</th>
+                            </tr>
+                            </thead>
+                            <tbody id="fileListBody">
+                            <tr id="fileListEmptyRow">
+                                <td colspan="3" class="text-center text-muted py-3 small-text">
+                                    아직 선택된 이미지가 없습니다.
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer py-2 small-text text-muted">
+                    * 파일명 기준 오름차순으로 자동 정렬됩니다. (예: 1.png, 2.png, 10.png)
+                </div>
+            </div>
+
+            <div class="mt-3 small-text text-muted">
+                <ul class="mb-1 ps-3">
+                    <li>브라우저/PC마다 <strong>캔버스 최대 크기 제한</strong>이 있습니다. 너무 많은 이미지를 합치면 실패할 수 있습니다.</li>
+                    <li>대부분의 경우 세로 길이가 수만 픽셀 정도까지는 문제 없이 동작합니다.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 결과 영역 -->
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <strong>1개의 긴 이미지 만들기</strong>
+                    <button type="button" id="mergeBtn" class="btn btn-primary btn-sm">
+                        이미지 합치기
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p class="small-text text-muted mb-2">
+                        선택된 이미지를 모두 불러온 뒤, 위에서 아래로 순서대로 이어붙입니다.<br>
+                        변환 결과는 아래에 미리보기로 표시되고, PNG / JPG(80) / JPG(100) 형식으로 저장할 수 있습니다.
+                    </p>
+
+                    <!-- 결과 미리보기 -->
+                    <div class="mb-3">
+                        <div class="border rounded p-2 bg-light text-center">
+                            <img id="resultPreview" class="img-fluid d-none" alt="결과 이미지 미리보기">
+                            <p id="resultEmptyText" class="mb-0 text-muted small-text py-5">
+                                아직 생성된 이미지가 없습니다.<br>
+                                먼저 왼쪽에서 이미지를 선택한 뒤 [이미지 합치기] 버튼을 눌러주세요.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 다운로드 버튼 -->
+                    <div class="d-flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            id="downloadPngBtn"
+                            class="btn btn-outline-success btn-sm"
+                            disabled
+                        >
+                            PNG 다운로드
+                        </button>
+                        <button
+                            type="button"
+                            id="downloadJpg80Btn"
+                            class="btn btn-outline-secondary btn-sm"
+                            disabled
+                        >
+                            JPG (품질 80) 다운로드
+                        </button>
+                        <button
+                            type="button"
+                            id="downloadJpg100Btn"
+                            class="btn btn-outline-dark btn-sm"
+                            disabled
+                        >
+                            JPG (품질 100) 다운로드
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info small-text mb-0">
+                <strong>TIP</strong><br>
+                - PNG는 무손실, JPG는 손실압축입니다.<br>
+                - JPG(80)는 용량이 작고, JPG(100)는 화질을 최대한 보존합니다.<br>
+                - 원본 이미지의 EXIF 회전정보에 따라 일부 이미지 방향이 다르게 나올 수 있습니다.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 숨겨진 캔버스 (실제 합치기 용도) -->
+<canvas id="resultCanvas" class="d-none"></canvas>
+
+<!-- JS: jQuery, Bootstrap, 메인 스크립트 -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- 아이콘(선택사항): 드롭존 아이콘용 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<script>
+    (function () {
+        let selectedFiles = [];
+        const $fileInput = $('#fileInput');
+        const $fileListBody = $('#fileListBody');
+        const $fileListEmptyRow = $('#fileListEmptyRow');
+        const $mergeBtn = $('#mergeBtn');
+        const $dropZone = $('#dropZone');
+        const $selectFilesBtn = $('#selectFilesBtn');
+
+        const $resultPreview = $('#resultPreview');
+        const $resultEmptyText = $('#resultEmptyText');
+        const $downloadPngBtn = $('#downloadPngBtn');
+        const $downloadJpg80Btn = $('#downloadJpg80Btn');
+        const $downloadJpg100Btn = $('#downloadJpg100Btn');
+        const resultCanvas = document.getElementById('resultCanvas');
+
+        function bytesToReadable(size) {
+            if (size === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(size) / Math.log(1024));
+            const value = size / Math.pow(1024, i);
+            return value.toFixed(value >= 10 ? 0 : 1) + ' ' + units[i];
+        }
+
+        function renderFileList() {
+            $fileListBody.empty();
+
+            if (!selectedFiles.length) {
+                $fileListBody.append($fileListEmptyRow);
+                $fileListEmptyRow.removeClass('d-none');
+                return;
+            }
+
+            $fileListEmptyRow.addClass('d-none');
+
+            selectedFiles.forEach(function (file, index) {
+                const $tr = $('<tr></tr>');
+                $('<td></td>').text(index + 1).appendTo($tr);
+                $('<td></td>').text(file.name).appendTo($tr);
+                $('<td class="text-end small-text"></td>').text(bytesToReadable(file.size)).appendTo($tr);
+                $fileListBody.append($tr);
+            });
+        }
+
+        function handleFiles(files) {
+            const imageFiles = Array.from(files).filter(function (file) {
+                return file.type === 'image/png' || file.type === 'image/jpeg';
+            });
+
+            if (!imageFiles.length) {
+                alert('PNG 또는 JPG 파일만 선택할 수 있습니다.');
+                return;
+            }
+
+            selectedFiles = imageFiles.sort(function (a, b) {
+                // 숫자 인식 포함한 로케일 정렬 (예: 1, 2, 10 순)
+                return a.name.localeCompare(b.name, 'ko', {numeric: true, sensitivity: 'base'});
+            });
+
+            renderFileList();
+
+            // 이전 결과 초기화
+            $resultPreview.addClass('d-none').attr('src', '');
+            $resultEmptyText.removeClass('d-none');
+            $downloadPngBtn.prop('disabled', true);
+            $downloadJpg80Btn.prop('disabled', true);
+            $downloadJpg100Btn.prop('disabled', true);
+        }
+
+        function loadImageFromFile(file) {
+            return new Promise(function (resolve, reject) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = new Image();
+                    img.onload = function () {
+                        resolve(img);
+                    };
+                    img.onerror = function (err) {
+                        reject(err);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function (err) {
+                    reject(err);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function mergeImages() {
+            if (!selectedFiles.length) {
+                alert('먼저 이미지를 선택해 주세요.');
+                return;
+            }
+
+            $mergeBtn.prop('disabled', true).text('처리 중...');
+            $downloadPngBtn.prop('disabled', true);
+            $downloadJpg80Btn.prop('disabled', true);
+            $downloadJpg100Btn.prop('disabled', true);
+
+            try {
+                // 1) 모든 파일을 Image 객체로 로딩
+                const images = await Promise.all(selectedFiles.map(loadImageFromFile));
+
+                if (!images.length) {
+                    alert('이미지를 불러오지 못했습니다.');
+                    return;
+                }
+
+                // 2) 전체 사이즈 계산
+                let totalHeight = 0;
+                let maxWidth = 0;
+
+                images.forEach(function (img) {
+                    totalHeight += img.height;
+                    if (img.width > maxWidth) {
+                        maxWidth = img.width;
+                    }
+                });
+
+                // 3) 캔버스 크기 설정
+                resultCanvas.width = maxWidth;
+                resultCanvas.height = totalHeight;
+
+                const ctx = resultCanvas.getContext('2d');
+                ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+
+                // 4) 순서대로 그리기 (위에서 아래로)
+                let currentY = 0;
+                images.forEach(function (img) {
+                    ctx.drawImage(img, 0, currentY);
+                    currentY += img.height;
+                });
+
+                // 5) 기본 PNG 미리보기 생성
+                const previewDataUrl = resultCanvas.toDataURL('image/png');
+
+                $resultPreview.attr('src', previewDataUrl).removeClass('d-none');
+                $resultEmptyText.addClass('d-none');
+
+                // 다운로드 버튼 활성화
+                $downloadPngBtn.prop('disabled', false);
+                $downloadJpg80Btn.prop('disabled', false);
+                $downloadJpg100Btn.prop('disabled', false);
+
+            } catch (e) {
+                console.error(e);
+                alert('이미지를 처리하는 중 오류가 발생했습니다. (콘솔 로그를 확인하세요)');
+            } finally {
+                $mergeBtn.prop('disabled', false).text('이미지 합치기');
+            }
+        }
+
+        function downloadFromCanvas(mimeType, quality, filename) {
+            if (!resultCanvas.width || !resultCanvas.height) {
+                alert('먼저 이미지를 합쳐 주세요.');
+                return;
+            }
+
+            let dataUrl;
+            try {
+                if (mimeType === 'image/png') {
+                    dataUrl = resultCanvas.toDataURL('image/png');
+                } else {
+                    dataUrl = resultCanvas.toDataURL(mimeType, quality);
+                }
+            } catch (e) {
+                console.error(e);
+                alert('이미지를 내보내는 중 오류가 발생했습니다.');
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // 이벤트 바인딩
+        $(function () {
+            // 파일 선택 버튼 클릭 -> 숨겨진 input 트리거
+            $selectFilesBtn.on('click', function () {
+                $fileInput.trigger('click');
+            });
+
+            // 파일 선택
+            $fileInput.on('change', function (e) {
+                handleFiles(e.target.files);
+                // 같은 파일 다시 선택 가능하도록 초기화
+                $fileInput.val('');
+            });
+
+            // 드래그 앤 드롭
+            $dropZone.on('dragenter dragover', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $dropZone.addClass('drag-over');
+            });
+
+            $dropZone.on('dragleave dragend drop', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $dropZone.removeClass('drag-over');
+            });
+
+            $dropZone.on('drop', function (e) {
+                const dt = e.originalEvent.dataTransfer;
+                if (dt && dt.files && dt.files.length) {
+                    handleFiles(dt.files);
+                }
+            });
+
+            // 드롭존 클릭해도 파일 선택하도록
+            $dropZone.on('click', function (e) {
+                // 버튼 클릭은 그대로
+                if (e.target === $selectFilesBtn[0]) return;
+                $fileInput.trigger('click');
+            });
+
+            // 합치기 버튼
+            $mergeBtn.on('click', mergeImages);
+
+            // 다운로드 버튼들
+            $downloadPngBtn.on('click', function () {
+                downloadFromCanvas('image/png', 1.0, 'joined.png');
+            });
+
+            $downloadJpg80Btn.on('click', function () {
+                downloadFromCanvas('image/jpeg', 0.8, 'joined_q80.jpg');
+            });
+
+            $downloadJpg100Btn.on('click', function () {
+                downloadFromCanvas('image/jpeg', 1.0, 'joined_q100.jpg');
+            });
+        });
+        function initLocalization() {
+          const userLang = navigator.language || navigator.userLanguage;
+          const isKorean = userLang.startsWith('ko');
+
+          if (!isKorean) {
+            document.title = "Q Join - Image Joiner (PNG/JPG)";
+            $("h1.h3").text("Q Join");
+            $("header p.text-muted.mb-0").html(`Drag and drop multiple PNG / JPG images,<br class="d-none d-md-inline">and we will vertically <strong>join them in filename order</strong> into a single long image.`);
+            $("header p.text-muted.mt-2").html('Powered by <a href="https://iddqd.kr">IDDQD Internet</a>');
+
+            // Drop zone
+            $("#dropZone p.fw-semibold").text("Drag & Drop images here");
+            $("#dropZone p.text-muted.small-text").text("Or click the button below to select multiple PNG / JPG files.");
+            $("#selectFilesBtn").text("Select Files");
+
+            // File list
+            $(".card-header strong").text("Selected Images (Sorted by Filename)");
+            $("thead th:nth-child(1)").text("Order");
+            $("thead th:nth-child(2)").text("Filename");
+            $("thead th:nth-child(3)").text("Size");
+            $("#fileListEmptyRow td").text("No images selected yet.");
+            $(".card-footer").text("* Automatically sorted ascending by filename (e.g., 1.png, 2.png, 10.png)");
+
+            // Tips
+            $(".mt-3.small-text ul li:nth-child(1)").html("Browsers/PCs have <strong>max canvas size limits</strong>. Merging too many images may fail.");
+            $(".mt-3.small-text ul li:nth-child(2)").text("In most cases, vertical lengths up to tens of thousands of pixels are fine.");
+
+            // Right column
+            $(".col-lg-7 .card-header strong").text("Create One Long Image");
+            $("#mergeBtn").text("Merge Images");
+            $(".col-lg-7 .card-body p.small-text.text-muted.mb-2").html("After loading all selected images, they will be joined from top to bottom.<br>The result is shown below and can be saved as PNG / JPG(80) / JPG(100).");
+            $("#resultPreview").attr("alt", "Result Preview");
+            $("#resultEmptyText").html("No image generated yet.<br>Please select images on the left and click [Merge Images].");
+
+            // Buttons
+            $("#downloadPngBtn").text("Download PNG");
+            $("#downloadJpg80Btn").text("Download JPG (Q 80)");
+            $("#downloadJpg100Btn").text("Download JPG (Q 100)");
+
+            // Bottom Alert
+            $(".alert-info strong").text("TIP");
+            $(".alert-info").html(`
+              <strong>TIP</strong><br>
+              - PNG is lossless, JPG is lossy compression.<br>
+              - JPG(80) has smaller file size, JPG(100) preserves maximum quality.<br>
+              - Some images might appear rotated depending on their EXIF orientation data.
+            `);
+          }
+        }
+        
+        initLocalization();
+    })();
+</script>
+</body>
+</html>
